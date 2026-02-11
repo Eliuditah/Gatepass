@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDL Gate Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root { --bdl-maroon: #800000; --bdl-blue: #003366; }
+        body { 
+            background: linear-gradient(135deg, var(--bdl-maroon) 0%, var(--bdl-blue) 100%); 
+            min-height: 100vh; font-family: 'Inter', sans-serif; color: #1a1a1a;
+        }
+        .glass-panel { background: rgba(255, 255, 255, 0.98); border-radius: 12px; }
+        .tab-active { border-bottom: 4px solid var(--bdl-maroon); color: var(--bdl-maroon); font-weight: bold; }
+        .admin-card { border-top: 4px solid var(--bdl-maroon); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="loginPage" class="max-w-md mx-auto mt-20 glass-panel p-8 shadow-2xl">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-black" style="color: var(--bdl-maroon);">BDL</h1>
+            <p class="text-gray-500 uppercase tracking-widest text-sm font-bold text-gray-400">Security Gate Access</p>
+        </div>
+        <div class="space-y-4">
+            <input type="text" id="username" class="w-full p-3 rounded bg-gray-50 border" placeholder="Username">
+            <input type="password" id="password" class="w-full p-3 rounded bg-gray-50 border" placeholder="Password">
+            <button onclick="handleLogin()" class="w-full p-4 bg-blue-900 text-white rounded font-bold hover:bg-blue-800 transition">LOGIN</button>
+            <p id="loginError" class="text-red-600 text-center hidden text-sm font-bold">Invalid username or password.</p>
+        </div>
+    </div>
+
+    <div id="mainPortal" class="max-w-6xl mx-auto glass-panel shadow-2xl hidden overflow-hidden">
+        <div class="bg-white border-b p-5 flex justify-between items-center">
+            <h2 class="text-xl font-black text-blue-900">BDL PORTAL</h2>
+            <button onclick="location.reload()" class="bg-red-50 text-red-700 px-4 py-2 rounded text-xs font-bold border hover:bg-red-100">LOGOUT</button>
+        </div>
+
+        <div class="flex bg-gray-50 border-b overflow-x-auto">
+            <button id="tabA" onclick="switchSheet('A')" class="flex-1 p-4 text-sm font-bold uppercase tab-active whitespace-nowrap">Visitor Info</button>
+            <button id="tabB" onclick="switchSheet('B')" class="flex-1 p-4 text-sm font-bold uppercase whitespace-nowrap">Vehicle Logistics</button>
+            <button id="tabAdmin" onclick="switchSheet('Admin')" class="flex-1 p-4 text-sm font-bold uppercase hidden bg-red-50 text-red-900">Admin Panel</button>
+        </div>
+
+        <div id="sheetA" class="p-6 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4 bg-white p-4 border rounded shadow-sm">
+                    <h3 class="font-bold text-lg text-maroon-800 border-b pb-2">New Visitor Entry</h3>
+                    <input type="text" id="v_name" placeholder="Full Name" class="w-full p-3 border rounded">
+                    <input type="text" id="v_dest" placeholder="Destination Office" class="w-full p-3 border rounded">
+                    <select id="v_purpose" class="w-full p-3 border rounded">
+                        <option>Official Meeting</option>
+                        <option>Delivery</option>
+                        <option>Maintenance</option>
+                        <option>Personal Visit</option>
+                        <option>Intern</option>
+                        <option>Job Interview</option>
+
+                    </select>
+                    <button onclick="apiCall('Visitors', 'checkin')" class="w-full p-3 bg-green-700 text-white rounded font-bold">LOG ENTRY</button>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300">
+                    <h3 class="font-bold text-lg text-red-800 mb-4">Record Departure</h3>
+                    <input type="text" id="v_out_id" placeholder="Enter Visitor Name" class="w-full p-3 border rounded mb-3">
+                    <button onclick="apiCall('Visitors', 'checkout')" class="w-full p-3 bg-red-700 text-white rounded font-bold">LOG EXIT</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="sheetB" class="p-6 space-y-6 hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4 bg-white p-4 border rounded shadow-sm">
+                    <h3 class="font-bold text-lg text-blue-800 border-b pb-2">Vehicle Log-In</h3>
+                    <input type="text" id="driver_name" placeholder="Driver Name" class="w-full p-3 border rounded">
+                    <input type="text" id="plate_num" placeholder="Plate Number" class="w-full p-3 border rounded">
+                    <input type="number" id="m_in" placeholder="Mileage In" class="w-full p-3 border rounded">
+                    <button onclick="apiCall('Vehicles', 'checkin')" class="w-full p-3 bg-blue-900 text-white rounded font-bold">LOG VEHICLE IN</button>
+                </div>
+                <div class="bg-blue-50 p-6 rounded-lg border-2 border-dashed border-blue-200">
+                    <h3 class="font-bold text-lg text-blue-900 mb-4">Vehicle Log-Out</h3>
+                    <input type="text" id="veh_out_id" placeholder="Plate Number" class="w-full p-3 border rounded mb-2">
+                    <input type="number" id="m_out" placeholder="Mileage Out" class="w-full p-3 border rounded mb-3">
+                    <button onclick="apiCall('Vehicles', 'checkout')" class="w-full p-3 bg-blue-700 text-white rounded font-bold">LOG VEHICLE OUT</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="sheetAdmin" class="p-6 hidden space-y-8 overflow-y-auto max-h-[80vh]">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-5 rounded border admin-card shadow-sm">
+                    <h3 class="font-black text-maroon-800 mb-4 uppercase tracking-tight">Security Guard Access</h3>
+                    <div class="flex flex-col gap-2 mb-4">
+                        <input type="text" id="newGuardName" placeholder="New Username" class="p-2 border rounded text-sm">
+                        <input type="text" id="newGuardPass" placeholder="Set Password" class="p-2 border rounded text-sm">
+                        <button onclick="addGuard()" class="bg-green-700 text-white p-2 rounded font-bold text-sm">CREATE GUARD ACCOUNT</button>
+                    </div>
+                    <div class="max-h-40 overflow-y-auto border-t pt-2">
+                        <table class="w-full text-xs text-left">
+                            <thead class="text-gray-400"><tr><th>User</th><th>Password</th><th></th></tr></thead>
+                            <tbody id="guardTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded border shadow-sm" style="border-top: 4px solid var(--bdl-blue);">
+                    <h3 class="font-black text-blue-900 mb-4 uppercase tracking-tight">Portal Security</h3>
+                    <label class="text-[10px] font-bold text-gray-400">CHANGE ADMIN PASSWORD</label>
+                    <input type="text" id="adminNewPass" placeholder="Enter New Password" class="w-full p-3 border rounded mb-3 text-sm mt-1">
+                    <button onclick="updateAdminPass()" class="w-full bg-blue-900 text-white p-3 rounded font-bold text-sm">UPDATE ADMIN PASSWORD</button>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded border shadow-sm">
+                <h3 class="font-black text-gray-800 mb-4">Smart History Search</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex gap-2">
+                        <input type="text" id="pSearch" placeholder="Search Person Name" class="flex-1 p-2 border rounded text-sm">
+                        <button onclick="quickSearch('Visitors', 'pSearch')" class="bg-maroon-800 text-white px-4 rounded text-xs font-bold">SEARCH</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="vSearch" placeholder="Search Plate Number" class="flex-1 p-2 border rounded text-sm">
+                        <button onclick="quickSearch('Vehicles', 'vSearch')" class="bg-blue-900 text-white px-4 rounded text-xs font-bold">SEARCH</button>
+                    </div>
+                </div>
+                <div id="historyBox" class="mt-4 hidden bg-gray-50 p-3 rounded border">
+                    <div class="flex justify-between mb-2 items-center"><span id="historyTitle" class="font-bold text-xs uppercase"></span><button onclick="this.parentElement.parentElement.classList.add('hidden')" class="text-red-600 font-bold text-xs">CLOSE</button></div>
+                    <div class="overflow-x-auto"><table class="w-full text-[10px] text-left"><thead id="hHead"></thead><tbody id="hBody"></tbody></table></div>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded border shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black text-gray-800">Master Logs</h3>
+                    <div class="flex gap-2">
+                        <button onclick="fetchLogs('Visitors')" class="bg-gray-100 px-3 py-1 rounded text-xs border font-bold">Visitors</button>
+                        <button onclick="fetchLogs('Vehicles')" class="bg-gray-100 px-3 py-1 rounded text-xs border font-bold">Vehicles</button>
+                        <button id="pdfBtn" onclick="exportToPDF()" class="bg-green-700 text-white px-3 py-1 rounded text-xs font-bold hidden">SAVE AS PDF</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto border rounded max-h-48">
+                    <table id="logTable" class="w-full text-left text-[10px]"><thead id="logHeader" class="bg-gray-100 sticky top-0"></thead><tbody id="logBody" class="divide-y"></tbody></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CLOUD_API_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE";
+        
+        // --- AUTH & USER MGMT ---
+        let users = JSON.parse(localStorage.getItem('bdl_users')) || [
+            { user: 'admin', pass: 'admin123' },
+            { user: 'guard1', pass: 'gate1' }
+        ];
+
+        function handleLogin() {
+            const u = document.getElementById('username').value.toLowerCase().trim();
+            const p = document.getElementById('password').value.trim();
+            const found = users.find(x => x.user === u && x.pass === p);
+            if(found) {
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('mainPortal').classList.remove('hidden');
+                if(u === 'admin') {
+                    document.getElementById('tabAdmin').classList.remove('hidden');
+                    renderGuards();
+                }
+            } else { document.getElementById('loginError').classList.remove('hidden'); }
+        }
+
+        function renderGuards() {
+            const body = document.getElementById('guardTableBody');
+            body.innerHTML = users.map(u => `
+                <tr class="border-b">
+                    <td class="p-2 font-bold text-blue-900">${u.user}</td>
+                    <td class="p-2 text-gray-500 font-mono">${u.pass}</td>
+                    <td class="p-2 text-right">
+                        ${u.user !== 'admin' ? `<button onclick="removeUser('${u.user}')" class="text-red-600 font-black">×</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function addGuard() {
+            const n = document.getElementById('newGuardName').value.trim().toLowerCase();
+            const p = document.getElementById('newGuardPass').value.trim();
+            if(n && p) {
+                if(users.some(u => u.user === n)) return alert("User exists!");
+                users.push({user: n, pass: p});
+                saveData();
+            }
+        }
+
+        function removeUser(n) {
+            users = users.filter(u => u.user !== n);
+            saveData();
+        }
+
+        function updateAdminPass() {
+            const p = document.getElementById('adminNewPass').value.trim();
+            if(p) {
+                users.find(u => u.user === 'admin').pass = p;
+                saveData();
+                alert("Admin password updated!");
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('bdl_users', JSON.stringify(users));
+            renderGuards();
+            document.querySelectorAll('#sheetAdmin input').forEach(i => i.value = '');
+        }
+
+        // --- CORE FUNCTIONS ---
+        function switchSheet(s) {
+            ['sheetA', 'sheetB', 'sheetAdmin'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            ['tabA', 'tabB', 'tabAdmin'].forEach(id => document.getElementById(id).classList.remove('tab-active'));
+            document.getElementById('sheet' + s).classList.remove('hidden');
+            document.getElementById('tab' + s).classList.add('tab-active');
+        }
+
+        async function apiCall(sheet, action) {
+            let payload = { action: action };
+            if (action === 'checkin') {
+                if(sheet === 'Visitors') {
+                    payload = { ...payload, name: document.getElementById('v_name').value, purpose: document.getElementById('v_purpose').value, dest: document.getElementById('v_dest').value };
+                } else {
+                    payload = { ...payload, driver: document.getElementById('driver_name').value, plate: document.getElementById('plate_num').value, m_in: document.getElementById('m_in').value };
+                }
+            } else {
+                payload = { ...payload, identifier: (sheet === 'Visitors' ? document.getElementById('v_out_id').value : document.getElementById('veh_out_id').value) };
+                if (sheet === 'Vehicles') payload.m_out = document.getElementById('m_out').value;
+            }
+            if(!Object.values(payload)[1]) return alert("Missing data");
+            await fetch(`${CLOUD_API_URL}?sheet=${sheet}&action=${action}`, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            alert("Sent to BDL Cloud");
+            document.querySelectorAll('#mainPortal input').forEach(i => i.value = '');
+        }
+
+        // --- SEARCH & LOGS ---
+        async function quickSearch(sheet, inputId) {
+            const term = document.getElementById(inputId).value.toLowerCase().trim();
+            if(!term) return;
+            const res = await fetch(`${CLOUD_API_URL}?sheet=${sheet}`);
+            const data = await res.json();
+            const col = (sheet === 'Visitors') ? 1 : 2; 
+            const matches = data.filter(r => String(r[col]).toLowerCase().includes(term));
+            
+            document.getElementById('historyTitle').innerText = `${sheet} Result: ${term}`;
+            document.getElementById('hHead').innerHTML = (sheet === 'Visitors') ? `<tr><th>In</th><th>Purpose</th><th>Out</th></tr>` : `<tr><th>In</th><th>Driver</th><th>Plate</th><th>Out</th></tr>`;
+            document.getElementById('hBody').innerHTML = matches.reverse().map(r => `<tr><td class="p-1 border-b">${r[0]}</td><td class="p-1 border-b">${r[sheet==='Visitors'?2:1]}</td><td class="p-1 border-b">${r[sheet==='Visitors'?5:6] || 'IN'}</td></tr>`).join('');
+            document.getElementById('historyBox').classList.remove('hidden');
+        }
+
+        async function fetchLogs(s) {
+            const res = await fetch(`${CLOUD_API_URL}?sheet=${s}`);
+            const data = await res.json();
+            document.getElementById('logHeader').innerHTML = (s === 'Visitors') ? `<tr><th>In</th><th>Name</th><th>Purpose</th><th>Status</th><th>Out</th></tr>` : `<tr><th>In</th><th>Plate</th><th>M-In</th><th>M-Out</th><th>Out</th></tr>`;
+            document.getElementById('logBody').innerHTML = data.slice().reverse().map(r => `<tr>${r.map(c => `<td class="p-1 border-b">${c || '-'}</td>`).join('')}</tr>`).join('');
+            document.getElementById('pdfBtn').classList.remove('hidden');
+        }
+
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            doc.text("BDL SECURITY REPORT", 14, 15);
+            doc.autoTable({ html: '#logTable', startY: 20, theme: 'grid', headStyles: {fillColor: [128, 0, 0]} });
+            doc.save("BDL_Report.pdf");
+        }
+    </script>
+</body>
+</html>
