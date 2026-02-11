@@ -149,7 +149,7 @@
     </div>
 
     <script>
-        const CLOUD_API_URL = "YOUR_GOOGLE_SCRIPT_URL_HERE";
+        const API_BASE_URL = "http://localhost:5000/api";
         
         // --- AUTH & USER MGMT ---
         let users = JSON.parse(localStorage.getItem('bdl_users')) || [
@@ -157,61 +157,150 @@
             { user: 'guard1', pass: 'gate1' }
         ];
 
-        function handleLogin() {
+        async function handleLogin() {
             const u = document.getElementById('username').value.toLowerCase().trim();
             const p = document.getElementById('password').value.trim();
-            const found = users.find(x => x.user === u && x.pass === p);
-            if(found) {
-                document.getElementById('loginPage').classList.add('hidden');
-                document.getElementById('mainPortal').classList.remove('hidden');
-                if(u === 'admin') {
-                    document.getElementById('tabAdmin').classList.remove('hidden');
-                    renderGuards();
+            
+            if(!u || !p) {
+                document.getElementById('loginError').innerText = "Please enter username and password";
+                document.getElementById('loginError').classList.remove('hidden');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                
+                const result = await response.json();
+                
+                if(result.success) {
+                    document.getElementById('loginPage').classList.add('hidden');
+                    document.getElementById('mainPortal').classList.remove('hidden');
+                    if(result.role === 'admin') {
+                        document.getElementById('tabAdmin').classList.remove('hidden');
+                        renderGuards();
+                    }
+                } else {
+                    document.getElementById('loginError').innerText = result.message || "Invalid credentials";
+                    document.getElementById('loginError').classList.remove('hidden');
                 }
-            } else { document.getElementById('loginError').classList.remove('hidden'); }
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('loginError').innerText = "Server connection error";
+                document.getElementById('loginError').classList.remove('hidden');
+            }
         }
 
-        function renderGuards() {
-            const body = document.getElementById('guardTableBody');
-            body.innerHTML = users.map(u => `
-                <tr class="border-b">
-                    <td class="p-2 font-bold text-blue-900">${u.user}</td>
-                    <td class="p-2 text-gray-500 font-mono">${u.pass}</td>
-                    <td class="p-2 text-right">
-                        ${u.user !== 'admin' ? `<button onclick="removeUser('${u.user}')" class="text-red-600 font-black">×</button>` : ''}
-                    </td>
-                </tr>
-            `).join('');
+        async function renderGuards() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/users`);
+                const users = await response.json();
+                
+                const body = document.getElementById('guardTableBody');
+                body.innerHTML = users.map(u => `
+                    <tr class="border-b">
+                        <td class="p-2 font-bold text-blue-900">${u.username}</td>
+                        <td class="p-2 text-gray-500 font-mono">${u.password_hash ? '••••••••' : ''}</td>
+                        <td class="p-2 text-right">
+                            ${u.username !== 'admin' ? `<button onclick="removeUser(${u.id})" class="text-red-600 font-black">×</button>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
         }
 
-        function addGuard() {
+        async function addGuard() {
             const n = document.getElementById('newGuardName').value.trim().toLowerCase();
             const p = document.getElementById('newGuardPass').value.trim();
-            if(n && p) {
-                if(users.some(u => u.user === n)) return alert("User exists!");
-                users.push({user: n, pass: p});
-                saveData();
+            
+            if(!n || !p) {
+                alert("Please enter username and password");
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username: n, password: p, role: 'guard' })
+                });
+                
+                const result = await response.json();
+                
+                if(result.success) {
+                    alert("Guard account created successfully");
+                    renderGuards();
+                    document.getElementById('newGuardName').value = '';
+                    document.getElementById('newGuardPass').value = '';
+                } else {
+                    alert(result.message || "Failed to create user");
+                }
+            } catch (error) {
+                console.error('Error creating user:', error);
+                alert("Server error");
             }
         }
 
-        function removeUser(n) {
-            users = users.filter(u => u.user !== n);
-            saveData();
+        async function removeUser(userId) {
+            if(!confirm("Are you sure you want to delete this user?")) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if(result.success) {
+                    alert("User deleted successfully");
+                    renderGuards();
+                } else {
+                    alert(result.message || "Failed to delete user");
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert("Server error");
+            }
         }
 
-        function updateAdminPass() {
+        async function updateAdminPass() {
             const p = document.getElementById('adminNewPass').value.trim();
-            if(p) {
-                users.find(u => u.user === 'admin').pass = p;
-                saveData();
-                alert("Admin password updated!");
+            
+            if(!p) {
+                alert("Please enter new password");
+                return;
             }
-        }
-
-        function saveData() {
-            localStorage.setItem('bdl_users', JSON.stringify(users));
-            renderGuards();
-            document.querySelectorAll('#sheetAdmin input').forEach(i => i.value = '');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/admin/password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password: p })
+                });
+                
+                const result = await response.json();
+                
+                if(result.success) {
+                    alert("Admin password updated successfully");
+                    document.getElementById('adminNewPass').value = '';
+                } else {
+                    alert(result.message || "Failed to update password");
+                }
+            } catch (error) {
+                console.error('Error updating password:', error);
+                alert("Server error");
+            }
         }
 
         // --- CORE FUNCTIONS ---
@@ -224,43 +313,163 @@
 
         async function apiCall(sheet, action) {
             let payload = { action: action };
+            let endpoint = '';
+            
             if (action === 'checkin') {
                 if(sheet === 'Visitors') {
-                    payload = { ...payload, name: document.getElementById('v_name').value, purpose: document.getElementById('v_purpose').value, dest: document.getElementById('v_dest').value };
+                    payload = { ...payload, name: document.getElementById('v_name').value, purpose: document.getElementById('v_purpose').value, destination: document.getElementById('v_dest').value };
+                    endpoint = `${API_BASE_URL}/visitors`;
                 } else {
                     payload = { ...payload, driver: document.getElementById('driver_name').value, plate: document.getElementById('plate_num').value, m_in: document.getElementById('m_in').value };
+                    endpoint = `${API_BASE_URL}/vehicles`;
                 }
             } else {
-                payload = { ...payload, identifier: (sheet === 'Visitors' ? document.getElementById('v_out_id').value : document.getElementById('veh_out_id').value) };
-                if (sheet === 'Vehicles') payload.m_out = document.getElementById('m_out').value;
+                if(sheet === 'Visitors') {
+                    payload = { ...payload, identifier: document.getElementById('v_out_id').value };
+                    endpoint = `${API_BASE_URL}/visitors`;
+                } else {
+                    payload = { ...payload, identifier: document.getElementById('veh_out_id').value, m_out: document.getElementById('m_out').value };
+                    endpoint = `${API_BASE_URL}/vehicles`;
+                }
             }
-            if(!Object.values(payload)[1]) return alert("Missing data");
-            await fetch(`${CLOUD_API_URL}?sheet=${sheet}&action=${action}`, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            alert("Sent to BDL Cloud");
-            document.querySelectorAll('#mainPortal input').forEach(i => i.value = '');
+            
+            // Validate required fields
+            if (action === 'checkin') {
+                if(sheet === 'Visitors') {
+                    if(!payload.name || !payload.purpose || !payload.destination) {
+                        alert("Please fill in all visitor fields");
+                        return;
+                    }
+                } else {
+                    if(!payload.driver || !payload.plate || !payload.m_in) {
+                        alert("Please fill in all vehicle fields");
+                        return;
+                    }
+                }
+            } else {
+                if(!payload.identifier) {
+                    alert("Please enter name/plate number");
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if(result.success) {
+                    alert(result.message);
+                    // Clear form fields
+                    if(action === 'checkin') {
+                        if(sheet === 'Visitors') {
+                            document.getElementById('v_name').value = '';
+                            document.getElementById('v_dest').value = '';
+                            document.getElementById('v_purpose').selectedIndex = 0;
+                        } else {
+                            document.getElementById('driver_name').value = '';
+                            document.getElementById('plate_num').value = '';
+                            document.getElementById('m_in').value = '';
+                        }
+                    } else {
+                        if(sheet === 'Visitors') {
+                            document.getElementById('v_out_id').value = '';
+                        } else {
+                            document.getElementById('veh_out_id').value = '';
+                            document.getElementById('m_out').value = '';
+                        }
+                    }
+                } else {
+                    alert(result.message || "Operation failed");
+                }
+            } catch (error) {
+                console.error('API call error:', error);
+                alert("Server connection error");
+            }
         }
 
         // --- SEARCH & LOGS ---
         async function quickSearch(sheet, inputId) {
             const term = document.getElementById(inputId).value.toLowerCase().trim();
             if(!term) return;
-            const res = await fetch(`${CLOUD_API_URL}?sheet=${sheet}`);
-            const data = await res.json();
-            const col = (sheet === 'Visitors') ? 1 : 2; 
-            const matches = data.filter(r => String(r[col]).toLowerCase().includes(term));
             
-            document.getElementById('historyTitle').innerText = `${sheet} Result: ${term}`;
-            document.getElementById('hHead').innerHTML = (sheet === 'Visitors') ? `<tr><th>In</th><th>Purpose</th><th>Out</th></tr>` : `<tr><th>In</th><th>Driver</th><th>Plate</th><th>Out</th></tr>`;
-            document.getElementById('hBody').innerHTML = matches.reverse().map(r => `<tr><td class="p-1 border-b">${r[0]}</td><td class="p-1 border-b">${r[sheet==='Visitors'?2:1]}</td><td class="p-1 border-b">${r[sheet==='Visitors'?5:6] || 'IN'}</td></tr>`).join('');
-            document.getElementById('historyBox').classList.remove('hidden');
+            try {
+                const res = await fetch(`${API_BASE_URL}/search/${sheet.toLowerCase()}?q=${encodeURIComponent(term)}`);
+                const data = await res.json();
+                
+                document.getElementById('historyTitle').innerText = `${sheet} Result: ${term}`;
+                
+                if(sheet === 'Visitors') {
+                    document.getElementById('hHead').innerHTML = `<tr><th>In</th><th>Name</th><th>Purpose</th><th>Out</th></tr>`;
+                    document.getElementById('hBody').innerHTML = data.map(r => `
+                        <tr>
+                            <td class="p-1 border-b">${r.checkin_time}</td>
+                            <td class="p-1 border-b">${r.name}</td>
+                            <td class="p-1 border-b">${r.purpose}</td>
+                            <td class="p-1 border-b">${r.checkout_time || 'IN'}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('hHead').innerHTML = `<tr><th>In</th><th>Driver</th><th>Plate</th><th>Out</th></tr>`;
+                    document.getElementById('hBody').innerHTML = data.map(r => `
+                        <tr>
+                            <td class="p-1 border-b">${r.checkin_time}</td>
+                            <td class="p-1 border-b">${r.driver_name}</td>
+                            <td class="p-1 border-b">${r.plate_number}</td>
+                            <td class="p-1 border-b">${r.checkout_time || 'IN'}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+                document.getElementById('historyBox').classList.remove('hidden');
+            } catch (error) {
+                console.error('Search error:', error);
+                alert("Search failed");
+            }
         }
 
         async function fetchLogs(s) {
-            const res = await fetch(`${CLOUD_API_URL}?sheet=${s}`);
-            const data = await res.json();
-            document.getElementById('logHeader').innerHTML = (s === 'Visitors') ? `<tr><th>In</th><th>Name</th><th>Purpose</th><th>Status</th><th>Out</th></tr>` : `<tr><th>In</th><th>Plate</th><th>M-In</th><th>M-Out</th><th>Out</th></tr>`;
-            document.getElementById('logBody').innerHTML = data.slice().reverse().map(r => `<tr>${r.map(c => `<td class="p-1 border-b">${c || '-'}</td>`).join('')}</tr>`).join('');
-            document.getElementById('pdfBtn').classList.remove('hidden');
+            try {
+                const res = await fetch(`${API_BASE_URL}/${s.toLowerCase()}`);
+                const data = await res.json();
+                
+                document.getElementById('logHeader').innerHTML = (s === 'Visitors') 
+                    ? `<tr><th>In</th><th>Name</th><th>Purpose</th><th>Status</th><th>Out</th></tr>` 
+                    : `<tr><th>In</th><th>Plate</th><th>M-In</th><th>M-Out</th><th>Out</th></tr>`;
+                
+                if(s === 'Visitors') {
+                    document.getElementById('logBody').innerHTML = data.map(r => `
+                        <tr>
+                            <td class="p-1 border-b">${r.checkin_time}</td>
+                            <td class="p-1 border-b">${r.name}</td>
+                            <td class="p-1 border-b">${r.purpose}</td>
+                            <td class="p-1 border-b">${r.status}</td>
+                            <td class="p-1 border-b">${r.checkout_time || '-'}</td>
+                        </tr>
+                    `).join('');
+                } else {
+                    document.getElementById('logBody').innerHTML = data.map(r => `
+                        <tr>
+                            <td class="p-1 border-b">${r.checkin_time}</td>
+                            <td class="p-1 border-b">${r.plate_number}</td>
+                            <td class="p-1 border-b">${r.mileage_in}</td>
+                            <td class="p-1 border-b">${r.mileage_out || '-'}</td>
+                            <td class="p-1 border-b">${r.checkout_time || '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+                document.getElementById('pdfBtn').classList.remove('hidden');
+            } catch (error) {
+                console.error('Fetch logs error:', error);
+                alert("Failed to fetch logs");
+            }
         }
 
         function exportToPDF() {
