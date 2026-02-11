@@ -58,14 +58,34 @@
                         <option>Personal Visit</option>
                         <option>Intern</option>
                         <option>Job Interview</option>
-
                     </select>
                     <button onclick="apiCall('Visitors', 'checkin')" class="w-full p-3 bg-green-700 text-white rounded font-bold">LOG ENTRY</button>
                 </div>
                 <div class="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300">
                     <h3 class="font-bold text-lg text-red-800 mb-4">Record Departure</h3>
-                    <input type="text" id="v_out_id" placeholder="Enter Visitor Name" class="w-full p-3 border rounded mb-3">
-                    <button onclick="apiCall('Visitors', 'checkout')" class="w-full p-3 bg-red-700 text-white rounded font-bold">LOG EXIT</button>
+                    <input type="text" id="v_out_id" placeholder="Enter Visitor Name" class="w-full p-3 border rounded mb-2">
+                    <div class="flex gap-2">
+                        <button onclick="apiCall('Visitors', 'checkout')" class="flex-1 p-3 bg-red-700 text-white rounded font-bold">LOG EXIT</button>
+                        <button onclick="scanQR('visitor')" class="flex-1 p-3 bg-blue-700 text-white rounded font-bold">SCAN QR</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Photo Capture Section -->
+            <div class="bg-white p-6 rounded-lg border shadow-sm">
+                <h3 class="font-bold text-lg text-maroon-800 border-b pb-2 mb-4">Visitor Photo Capture</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <video id="visitorCamera" autoplay playsinline class="w-full h-auto border rounded"></video>
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="startCamera('visitor')" class="flex-1 p-2 bg-blue-700 text-white rounded text-sm">Start Camera</button>
+                            <button onclick="capturePhoto('visitor')" class="flex-1 p-2 bg-green-700 text-white rounded text-sm">Capture Photo</button>
+                        </div>
+                    </div>
+                    <div>
+                        <img id="visitorPhotoPreview" class="w-full h-auto border rounded mb-2" style="display: none;">
+                        <button onclick="uploadPhoto('visitor')" class="w-full p-2 bg-purple-700 text-white rounded text-sm" style="display: none;">Upload Photo</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -82,8 +102,29 @@
                 <div class="bg-blue-50 p-6 rounded-lg border-2 border-dashed border-blue-200">
                     <h3 class="font-bold text-lg text-blue-900 mb-4">Vehicle Log-Out</h3>
                     <input type="text" id="veh_out_id" placeholder="Plate Number" class="w-full p-3 border rounded mb-2">
-                    <input type="number" id="m_out" placeholder="Mileage Out" class="w-full p-3 border rounded mb-3">
-                    <button onclick="apiCall('Vehicles', 'checkout')" class="w-full p-3 bg-blue-700 text-white rounded font-bold">LOG VEHICLE OUT</button>
+                    <input type="number" id="m_out" placeholder="Mileage Out" class="w-full p-3 border rounded mb-2">
+                    <div class="flex gap-2">
+                        <button onclick="apiCall('Vehicles', 'checkout')" class="flex-1 p-3 bg-blue-700 text-white rounded font-bold">LOG OUT</button>
+                        <button onclick="scanQR('vehicle')" class="flex-1 p-3 bg-green-700 text-white rounded font-bold">SCAN QR</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Vehicle Photo Capture Section -->
+            <div class="bg-white p-6 rounded-lg border shadow-sm">
+                <h3 class="font-bold text-lg text-blue-800 border-b pb-2 mb-4">Vehicle License Plate Capture</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <video id="vehicleCamera" autoplay playsinline class="w-full h-auto border rounded"></video>
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="startCamera('vehicle')" class="flex-1 p-2 bg-blue-700 text-white rounded text-sm">Start Camera</button>
+                            <button onclick="capturePhoto('vehicle')" class="flex-1 p-2 bg-green-700 text-white rounded text-sm">Capture Plate</button>
+                        </div>
+                    </div>
+                    <div>
+                        <img id="vehiclePhotoPreview" class="w-full h-auto border rounded mb-2" style="display: none;">
+                        <button onclick="uploadPhoto('vehicle')" class="w-full p-2 bg-purple-700 text-white rounded text-sm" style="display: none;">Upload Photo</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -111,6 +152,36 @@
                     <label class="text-[10px] font-bold text-gray-400">CHANGE ADMIN PASSWORD</label>
                     <input type="text" id="adminNewPass" placeholder="Enter New Password" class="w-full p-3 border rounded mb-3 text-sm mt-1">
                     <button onclick="updateAdminPass()" class="w-full bg-blue-900 text-white p-3 rounded font-bold text-sm">UPDATE ADMIN PASSWORD</button>
+                </div>
+            </div>
+
+            <!-- Pre-Registration Section -->
+            <div class="bg-white p-6 rounded-lg border shadow-sm">
+                <h3 class="font-bold text-lg text-maroon-800 border-b pb-2 mb-4">Employee Pre-Registration</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <h4 class="font-bold text-blue-900">Pre-Register Guest</h4>
+                        <input type="text" id="pre_name" placeholder="Guest Full Name" class="w-full p-3 border rounded">
+                        <input type="text" id="pre_dest" placeholder="Destination Office" class="w-full p-3 border rounded">
+                        <select id="pre_purpose" class="w-full p-3 border rounded">
+                            <option>Official Meeting</option>
+                            <option>Delivery</option>
+                            <option>Maintenance</option>
+                            <option>Personal Visit</option>
+                            <option>Intern</option>
+                            <option>Job Interview</option>
+                        </select>
+                        <input type="text" id="pre_employee" placeholder="Employee Name" class="w-full p-3 border rounded">
+                        <button onclick="preRegisterVisitor()" class="w-full p-3 bg-purple-700 text-white rounded font-bold">PRE-REGISTER GUEST</button>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg border-2 border-dashed border-gray-300">
+                        <h4 class="font-bold text-blue-900 mb-4">Confirm Pre-Registered Guest</h4>
+                        <div class="flex gap-2">
+                            <button onclick="scanQR('pre-registration')" class="flex-1 p-3 bg-blue-700 text-white rounded font-bold">SCAN PRE-REG QR</button>
+                            <button onclick="confirmPreRegistration()" class="flex-1 p-3 bg-green-700 text-white rounded font-bold">CONFIRM ARRIVAL</button>
+                        </div>
+                        <div id="preRegResult" class="mt-4 text-sm text-gray-600"></div>
+                    </div>
                 </div>
             </div>
 
@@ -478,6 +549,192 @@
             doc.text("BDL SECURITY REPORT", 14, 15);
             doc.autoTable({ html: '#logTable', startY: 20, theme: 'grid', headStyles: {fillColor: [128, 0, 0]} });
             doc.save("BDL_Report.pdf");
+        }
+
+        // --- QR CODE SCANNING ---
+        let qrScannerActive = false;
+        let qrScannerType = '';
+        
+        function scanQR(type) {
+            qrScannerType = type;
+            alert(`QR Scanner for ${type} - Please use a QR scanning app or manually enter QR data in the console for testing`);
+            // In a real implementation, you would integrate a QR scanning library here
+            // For now, we'll simulate with a prompt
+            const qrData = prompt(`Enter QR code data for ${type}:`);
+            if(qrData) {
+                handleQRScan(qrData);
+            }
+        }
+
+        async function handleQRScan(qrData) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/qr/scan`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ qr_data: qrData })
+                });
+                
+                const result = await response.json();
+                
+                if(result.success) {
+                    alert(result.message);
+                    // Refresh relevant data
+                    if(qrScannerType === 'visitor') {
+                        // Could refresh visitor list
+                    } else if(qrScannerType === 'vehicle') {
+                        // Could refresh vehicle list
+                    } else if(qrScannerType === 'pre-registration') {
+                        document.getElementById('preRegResult').innerText = 'Pre-registration confirmed successfully!';
+                    }
+                } else {
+                    alert(result.message || "QR scan failed");
+                }
+            } catch (error) {
+                console.error('QR scan error:', error);
+                alert("Server connection error");
+            }
+        }
+
+        // --- PHOTO CAPTURE ---
+        let currentStream = null;
+        let currentPhotoType = '';
+        
+        async function startCamera(type) {
+            currentPhotoType = type;
+            const video = document.getElementById(type + 'Camera');
+            const preview = document.getElementById(type + 'PhotoPreview');
+            const uploadBtn = document.getElementById(type + 'Camera').parentElement.querySelector('button:last-child');
+            
+            try {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+                
+                currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = currentStream;
+                
+                preview.style.display = 'none';
+                uploadBtn.style.display = 'none';
+            } catch (error) {
+                console.error('Camera error:', error);
+                alert('Camera access denied or not available');
+            }
+        }
+
+        function capturePhoto(type) {
+            const video = document.getElementById(type + 'Camera');
+            const preview = document.getElementById(type + 'PhotoPreview');
+            const uploadBtn = document.getElementById(type + 'Camera').parentElement.querySelector('button:last-child');
+            
+            if (!video.srcObject) {
+                alert('Please start the camera first');
+                return;
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const dataURL = canvas.toDataURL('image/jpeg');
+            preview.src = dataURL;
+            preview.style.display = 'block';
+            uploadBtn.style.display = 'block';
+            
+            // Store the photo data for upload
+            window.currentPhotoData = dataURL;
+        }
+
+        async function uploadPhoto(type) {
+            if (!window.currentPhotoData) {
+                alert('Please capture a photo first');
+                return;
+            }
+            
+            // For this demo, we'll just show the photo was "uploaded"
+            alert(`${type} photo captured successfully!`);
+            
+            // In a real implementation, you would:
+            // 1. Get the entity ID (visitor ID or vehicle ID)
+            // 2. Call the upload API
+            // 3. Handle the response
+            
+            // Clear the photo data
+            window.currentPhotoData = null;
+            const preview = document.getElementById(type + 'PhotoPreview');
+            const uploadBtn = document.getElementById(type + 'Camera').parentElement.querySelector('button:last-child');
+            preview.style.display = 'none';
+            uploadBtn.style.display = 'none';
+        }
+
+        // --- PRE-REGISTRATION ---
+        async function preRegisterVisitor() {
+            const name = document.getElementById('pre_name').value.trim();
+            const dest = document.getElementById('pre_dest').value.trim();
+            const purpose = document.getElementById('pre_purpose').value.trim();
+            const employee = document.getElementById('pre_employee').value.trim();
+            
+            if (!name || !dest || !purpose || !employee) {
+                alert('Please fill in all pre-registration fields');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/pre-register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, destination: dest, purpose, employee_name: employee })
+                });
+                
+                const result = await response.json();
+                
+                if(result.success) {
+                    alert(`Guest pre-registered successfully! QR code generated: ${result.qr_code}`);
+                    document.getElementById('pre_name').value = '';
+                    document.getElementById('pre_dest').value = '';
+                    document.getElementById('pre_purpose').selectedIndex = 0;
+                    document.getElementById('pre_employee').value = '';
+                } else {
+                    alert(result.message || "Pre-registration failed");
+                }
+            } catch (error) {
+                console.error('Pre-registration error:', error);
+                alert("Server connection error");
+            }
+        }
+
+        async function confirmPreRegistration() {
+            // For demo purposes, we'll use a sample QR code
+            const sampleQR = "PREGISTERED:6:Pre-Registered Visitor:HR Department:Interview:John Employee";
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/confirm-pre-registration`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ qr_data: sampleQR })
+                });
+                
+                const result = await response.json();
+                
+                if(result.success) {
+                    document.getElementById('preRegResult').innerText = 'Pre-registered guest confirmed and checked in successfully!';
+                    document.getElementById('preRegResult').style.color = 'green';
+                } else {
+                    document.getElementById('preRegResult').innerText = result.message || "Confirmation failed";
+                    document.getElementById('preRegResult').style.color = 'red';
+                }
+            } catch (error) {
+                console.error('Pre-registration confirmation error:', error);
+                document.getElementById('preRegResult').innerText = "Server connection error";
+                document.getElementById('preRegResult').style.color = 'red';
+            }
         }
     </script>
 </body>
